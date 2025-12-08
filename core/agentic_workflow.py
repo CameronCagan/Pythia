@@ -32,14 +32,22 @@ def run_agentic_workflow(
     priority: str
 ) -> None:
     """
-    Fully updated version: NO empi= folders, NO id_list.txt
-    Each patient = one .parquet or .csv file directly in input_data_path
+    Runs the full Development Dataset workflow.
+    Args: 
+        Backend: LLM backend instance.
+        input_data_path (str): Path to input data folder.
+        SOP (str): Standard Operating Procedure text.
+        BasePrompt (str): Initial prompt text or path to prompt file.
+        output_path (str): Path to output folder.
+        Iterations (int): Maximum number of iterations.
+        sensitivity_threshold (float): Sensitivity threshold to reach.
+        specificity_threshold (float): Specificity threshold to reach.
+        priority (str): "sensitivity" or "specificity" indicating which metric to prioritize.
     """
     if not os.path.exists(input_data_path):
         raise FileNotFoundError(f"Input data path {input_data_path} does not exist.")
     os.makedirs(output_path, exist_ok=True)
 
-    # Priority normalization
     if priority is None:
         priority = "sensitivity"
     priority = priority.lower().strip()
@@ -49,7 +57,6 @@ def run_agentic_workflow(
     if not isinstance(Iterations, int) or Iterations < 1:
         raise ValueError("Iterations must be positive integer")
 
-    # Load base prompt
     if os.path.isfile(BasePrompt):
         with open(BasePrompt, "r") as f:
             current_prompt = f.read()
@@ -69,7 +76,6 @@ def run_agentic_workflow(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
-    #auto discover patient files
     parquet_files = glob.glob(os.path.join(input_data_path, "*.parquet"))
     csv_files     = glob.glob(os.path.join(input_data_path, "*.csv"))
     patient_files = parquet_files + csv_files
@@ -77,14 +83,14 @@ def run_agentic_workflow(
     if not patient_files:
         raise ValueError(f"No .parquet or .csv files found directly in {input_data_path}")
 
-    patient_files.sort()  # consistent order
+    patient_files.sort()
     logging.info(f"Auto-discovered {len(patient_files)} patient files (direct files, no subfolders)")
     print(f"Found {len(patient_files)} patient files in {input_data_path}")
 
     patient_id_list = []
-    file_path_map = {}  # patient_id -> full path
+    file_path_map = {}
     for fp in patient_files:
-        patient_id = os.path.splitext(os.path.basename(fp))[0]  # e.g. "12345" from "12345.parquet"
+        patient_id = os.path.splitext(os.path.basename(fp))[0]
         patient_id_list.append(patient_id)
         file_path_map[patient_id] = fp
 
@@ -112,19 +118,17 @@ def run_agentic_workflow(
             input_file_path = file_path_map[patient_id]
             file_ext = os.path.splitext(input_file_path)[1].lower()
 
-            # Skip if already processed this iteration
             output_csv_path = os.path.join(output_pt_folder, f"{patient_id}.csv")
             if os.path.isfile(output_csv_path):
                 logging.info(f"Patient-level file exists, skipping {patient_id}: {output_csv_path}")
                 continue
 
-            # Load patient data
             try:
                 if file_ext == ".parquet":
                     subset_df = pd.read_parquet(input_file_path)
-                else:  # .csv
+                else:  
                     subset_df = pd.read_csv(input_file_path)
-                subset_df["empi"] = patient_id  # keep column name for downstream compatibility
+                subset_df["empi"] = patient_id
                 logging.info(f"Loaded {file_ext[1:]} for patient {patient_id}: shape={subset_df.shape}")
             except Exception as e:
                 logging.exception(f"Failed to load {input_file_path}: {e}")
@@ -132,10 +136,10 @@ def run_agentic_workflow(
                 
             if 'response' in subset_df.columns:
               subset_df = subset_df.drop(columns=['response'])
-            subset_df['response'] = pd.NA  # or None
+            subset_df['response'] = pd.NA
 
             logging.info(f"Running LLM specialist on {patient_id} ({len(subset_df)} reports)")
-            # Run specialist on each report row
+            #Specialist
             for row_idx, row in subset_df.iterrows():
                 report_text = row.get("Visit", None)
                 if pd.isna(report_text) or str(report_text).strip() == "":
@@ -151,7 +155,6 @@ def run_agentic_workflow(
                     logging.exception(f"evaluate_cognitive_concerns failed for {patient_id}, row {row_idx}: {e}")
                     subset_df.at[row_idx, "response"] = None
 
-            # Save patient level output
             try:
                 subset_df.to_csv(output_csv_path, index=False)
                 logging.info(f"Saved specialist output for {patient_id} -> {output_csv_path}")
@@ -231,7 +234,6 @@ def run_agentic_workflow(
 
         try:
             fn_df, fp_df = full_save_fn_fp(
-                #large_df,
                 df_pt,
                 large_df,
                 fn_file=os.path.join(evaluation_output_folder, "fn_result.csv"),
@@ -259,6 +261,7 @@ def run_agentic_workflow(
 
         improver_iter = iter
 
+        #Sensitivity improver
         if (priority == "sensitivity" and current_sensitivity < sensitivity_threshold) or (priority == "specificity" and current_specificity > specificity_threshold and current_sensitivity < sensitivity_threshold):
             print(f"\nENTERING SENSITIVITY IMPROVER for iteration {improver_iter} | Current Sensitivity: {current_sensitivity:.4f}")
             logging.info(f"Entering sensitivity improver (iter {improver_iter}) | Sens={current_sensitivity:.4f} | FN notes={len(fn_df)}")
@@ -268,17 +271,10 @@ def run_agentic_workflow(
             sst_fn_output_csv = os.path.join(sensitivity_output_folder, f"sensitivity_iter_{improver_iter}_result.csv")
             clean_output_csv = os.path.join(sensitivity_output_folder, f"sensitivity_iter_{improver_iter}_result_cleaned.csv")
             p_output_file_path = os.path.join(sensitivity_output_folder, f"ap{improver_iter}.txt")
-            #fn_df = fn_df[
-              #(fn_df["Ground Truth"] == 1) &
-              #(fn_df["final_answer"] == 0)
-            #].copy()
-
-            # If FN dataframe empty, warn and skip generating evidence
             if fn_df.empty:
                 print("No false-negative rows to use for sensitivity improver.")
                 logging.warning("FN dataframe empty; skipping sensitivity improver.")
             else:
-                # STEP 1: run sensitivity_agent for each false-negative note if evidence CSV missing
                 if not os.path.exists(sst_fn_output_csv) or os.path.getsize(sst_fn_output_csv) == 0:
                     results = []
                     for idx, row in fn_df.iterrows():
@@ -302,7 +298,6 @@ def run_agentic_workflow(
                     result_df = pd.read_csv(sst_fn_output_csv)
                     print(f"? Loaded existing sensitivity evidence CSV ({len(result_df)} rows)")
 
-                # STEP 2: filter meaningful paragraphs
                 if "evidence" in result_df.columns:
                     result_df["is_meaningful"] = result_df["evidence"].apply(
                         lambda x: is_meaningful_paragraph(x) if pd.notna(x) else False
@@ -314,7 +309,6 @@ def run_agentic_workflow(
                     filtered_df = pd.DataFrame()
                     print("No evidence column found in sensitivity evidence CSV.")
 
-                # STEP 3: summarizer -> new prompt if meaningful evidence present
                 if not os.path.exists(p_output_file_path):
                     if filtered_df.empty:
                         print("No meaningful evidence produced; keeping current prompt.")
@@ -333,7 +327,6 @@ def run_agentic_workflow(
                             logging.exception(f"summarizer_sensitivity failed: {e}")
                             new_prompt = current_prompt + "\n# (summarizer failed; prompt unchanged)"
 
-                    # write raw and cleaned prompts and update current_prompt
                     with open(os.path.join(sensitivity_output_folder, f"ap{improver_iter}_raw.txt"), "w") as f:
                         f.write(new_prompt)
                     current_prompt = clean_prompt(new_prompt)
@@ -343,6 +336,8 @@ def run_agentic_workflow(
                     logging.info(f"new sensitivity prompt saved: {p_output_file_path}")
                 else:
                     print(f"Prompt already exists: {p_output_file_path}")
+
+        #Specificity improver
         if (priority == "specificity" and current_specificity < specificity_threshold) or (priority == "sensitivity" and current_sensitivity > sensitivity_threshold and current_specificity < specificity_threshold):
           print(f"\nENTERING SPECIFICITY IMPROVER for iteration {improver_iter} | Current Specificity: {current_specificity:.4f}")
           logging.info(f"Entering specificity improver (iter {improver_iter}) | Spec={current_specificity:.4f} | FP notes={len(fp_df)}")
@@ -352,17 +347,10 @@ def run_agentic_workflow(
           clean_output_csv = os.path.join(specificity_output_folder, f"specificity_iter_{improver_iter}_result_cleaned.csv")
           p_output_file_path = os.path.join(specificity_output_folder, f"ap{improver_iter}.txt")
           
-          
-          #fp_df = fp_df[
-            #(fp_df["Ground Truth"] == 0) &
-            #(fp_df["final_answer"] == 1)
-            #].copy()
-          # STEP 0: If no FP evidence exists, skip entire block
           if fp_df.empty:
             print("No false-positive rows to use for specificity improver.")
             logging.warning("FP dataframe empty; skipping specificity improver.")
           else:
-          # STEP 1: Run specificity_agent for each FP note if evidence not yet saved
             if not os.path.exists(spe_fp_output_csv) or os.path.getsize(spe_fp_output_csv) == 0:
               results = []
               for idx, row in fp_df.iterrows():
@@ -390,7 +378,6 @@ def run_agentic_workflow(
               result_df = pd.read_csv(spe_fp_output_csv)
               print(f"? Loaded existing specificity evidence CSV ({len(result_df)} rows)")
 
-          # STEP 2: Filter meaningful paragraphs (same behavior as sensitivity block)
           if "evidence" in result_df.columns:
             result_df["is_meaningful"] = result_df["evidence"].apply(
                 lambda x: is_meaningful_paragraph(x) if pd.notna(x) else False
@@ -402,7 +389,6 @@ def run_agentic_workflow(
             filtered_df = pd.DataFrame()
             print("No evidence column found in specificity evidence CSV.")
 
-          # STEP 3: summarizer_specificity ? new prompt
           if not os.path.exists(p_output_file_path):
 
             if filtered_df.empty:
@@ -422,7 +408,6 @@ def run_agentic_workflow(
                     logging.exception(f"summarizer_specificity failed: {e}")
                     new_prompt = current_prompt + "\n# (specificity summarizer failed; prompt unchanged)"
 
-            # save raw and cleaned versions
             with open(os.path.join(specificity_output_folder, f"ap{improver_iter}_raw.txt"), "w") as f:
                 f.write(new_prompt)
 

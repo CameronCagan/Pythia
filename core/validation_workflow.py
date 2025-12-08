@@ -46,14 +46,12 @@ def validation_workflow(
     logging.info("Starting validation workflow...")
     print("Starting validation workflow...")
 
-    # Load base prompt
     if os.path.isfile(BasePrompt):
         with open(BasePrompt, "r") as f:
             current_prompt = f.read()
     else:
         current_prompt = BasePrompt
 
-    # Discover files
     parquet_files = glob.glob(os.path.join(input_data_path, "*.parquet"))
     csv_files = glob.glob(os.path.join(input_data_path, "*.csv"))
     patient_files = parquet_files + csv_files
@@ -68,7 +66,6 @@ def validation_workflow(
     pt_output_path = os.path.join(base_output_path, "patient_level")
     os.makedirs(pt_output_path, exist_ok=True)
 
-    # Process each patient
     for fp in patient_files:
         patient_id = os.path.splitext(os.path.basename(fp))[0]
         file_ext = os.path.splitext(fp)[1].lower()
@@ -96,7 +93,6 @@ def validation_workflow(
 
     print("Specialist evaluation completed.")
 
-    # Combine outputs
     try:
         large_df = read_patient_outputs(pt_output_path)
         specialist_csv = os.path.join(base_output_path, "specialist_validation.csv")
@@ -105,14 +101,12 @@ def validation_workflow(
         logging.exception("Failed to combine validation outputs.")
         raise
 
-    # Preprocess + patient-level aggregation
     df = preprocess_data(large_df)
     df_pt = get_patient_data(df)
 
     label_file = os.path.join(base_output_path, "patient_level_label_validation.csv")
     df_pt.to_csv(label_file, index=False)
 
-    # Normalize binary format
     df_pt["Ground Truth"] = df_pt["Ground Truth"].astype(str).str.strip().str.lower()
     df_pt["Ground Truth"] = df_pt["Ground Truth"].map({
             "yes": 1,
@@ -137,7 +131,6 @@ def validation_workflow(
             "false": 0
             })
 
-    # Compute metrics
     metrics_file = os.path.join(base_output_path, "metrics_validation.csv")
     sensitivity, specificity = calculate_metrics(
         df_pt, y_true_col="Ground Truth", y_pred_col="final_answer", output_file=metrics_file

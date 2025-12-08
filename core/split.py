@@ -26,7 +26,6 @@ def split_csv_folder(
     if not 0 < ratio < 1:
         raise ValueError("ratio must be between 0 and 1")
 
-    # Default output folders
     if dev_folder is None:
         dev_folder = os.path.join(source_folder, "dev")
         os.makedirs(dev_folder, exist_ok=True)
@@ -34,36 +33,27 @@ def split_csv_folder(
         val_folder = os.path.join(source_folder, "val")
         os.makedirs(val_folder, exist_ok=True)
 
-    # Collect CSVs
     csv_files = [f for f in os.listdir(source_folder) if f.lower().endswith(".csv")]
     if not csv_files:
         raise ValueError("No CSV files found in source folder")
 
     random.shuffle(csv_files)
 
-    # Split
     split_index = int(len(csv_files) * ratio)
     dev_files = csv_files[:split_index]
     val_files = csv_files[split_index:]
 
-    # Make folders
     os.makedirs(dev_folder, exist_ok=True)
     os.makedirs(val_folder, exist_ok=True)
 
-    # Copy files
     for f in dev_files:
         shutil.copy(os.path.join(source_folder, f), dev_folder)
 
     for f in val_files:
         shutil.copy(os.path.join(source_folder, f), val_folder)
 
-    # Return folder paths
     return dev_folder, val_folder
 
-
-# -----------------------------
-# CLI entry point
-# -----------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Split a folder of CSVs into dev and val sets.")
     parser.add_argument("source_folder", type=str, help="Path to folder with CSVs")
