@@ -66,7 +66,12 @@ const Hero = () => {
                       <img
                         src={`${process.env.PUBLIC_URL}/assets/Hero-Visual.jpg`}
                         alt="Logo"
-                        style={{ width: '100%', height: 'auto' }}
+                        style={{ 
+                          width: '100%', 
+                          height: 'auto', 
+                          objectFit: 'contain', 
+                          maxHeight: '100%' 
+                        }}
                       />
                     </div>
                   </div>
