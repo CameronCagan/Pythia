@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 
 const Hero = () => {
   const [isCopied, setIsCopied] = useState(false);
-  const paperLink = 'https://example.com/pythia-paper'; // Replace with final paper link
+  // const paperLink = 'https://example.com/pythia-paper'; // Replace with final paper link
 
-  const handleScroll = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  // const handleScroll = (id) => {
+  //   const element = document.getElementById(id);
+  //   if (element) {
+  //     element.scrollIntoView({ behavior: 'smooth' });
+  //   }
+  // };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText('pip install pythia-tool')
