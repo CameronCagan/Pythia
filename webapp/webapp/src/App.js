@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import Paper from './components/Paper';
+// import Paper from './components/Paper';
 import Demos from './components/Demos';
 import Explanation from './components/Explanation';
-import Citation from './components/Citation';
+// import Citation from './components/Citation';
 import Footer from './components/Footer';
 import Installation from './components/Installation';
 
