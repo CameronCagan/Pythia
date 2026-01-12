@@ -64,7 +64,7 @@ const Hero = () => {
                     </div>
                     <div className="dashboard-image-container">
                       <img
-                        src={`${process.env.PUBLIC_URL}/assets/Hero-Visual.jpg`}
+                        src={`${process.env.PUBLIC_URL}/assets/Hero-Visual.png`}
                         alt="Logo"
                         style={{ 
                           width: '100%', 
