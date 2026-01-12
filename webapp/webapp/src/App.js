@@ -94,11 +94,11 @@ function App() {
     <div className="App">
       <Header />
       <Hero />
-      <Paper />
+      {/* <Paper /> */}
       <Demos />
       <Explanation />
       <Installation />
-      <Citation />
+      {/* <Citation /> */}
       <Footer />
     </div>
   );
