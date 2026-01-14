@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 const Demos = () => {
   const videoContainersRef = useRef([]);
   const videos = useMemo(() => [
-    { url: 'pythia_overview.mp4', duration: 'xxx min', title: '1. Workflow Overview', description: 'How the five-agent architecture collaborates to optimize prompts for cognitive concern detection without human-in-the-loop tweaks.' }
+    { url: 'pythia_video.mp4', duration: 'xxx min', title: '1. Workflow Overview', description: 'How the five-agent architecture collaborates to optimize prompts for cognitive concern detection without human-in-the-loop tweaks.' }
   ], []);
 
   useEffect(() => {
@@ -11,7 +11,7 @@ const Demos = () => {
       if (!container) return;
 
       const videoUrl = videoInfo.url;
-      const videoPath = `/assets/videos/${videoUrl}`;
+      const videoPath = `${process.env.PUBLIC_URL}/assets/${videoUrl}`;
       const video = document.createElement('video');
       video.controls = true;
       video.autoplay = true;
@@ -49,14 +49,26 @@ const Demos = () => {
       <div className="container">
         <div className="section-header fade-in">
           <h2>What is Pythia?</h2>
-          <p>Pythia is an iterative tool for allowing your LLM to improve upon it's own prompts. Instead of manually changing and perfecting your own prompt, Pythia can do it for you, by testing on a dataset you provide and determining where it needs to improve.</p>
-          <br />
-          <p> Pythia works by first calling the Specialist agent to test your prompt, and evaluates the performance metrics compared to the provided ground truth answer. It will then route to the corresponding improvement agent (sensitivity, or specificity) based on your results and priority. For each false positive, or false negative individual, it will process the mistaken notes to figure out where the LLM went wrong, and provide evidence of the true classification of the note for the summarizer to build it's new prompt on. From there, the summarizer will be passed the evidence, as well as the original prompt and SOP to build the new prompt. Once a new prompt is created, it will repeat the process until it reaches the maximum iterations or meets the performance thresholds. From there, it will validate the new prompt on the development dataset.</p>
+                    <p>Step-by-step explanation of how Pythia refines prompts, adjudicates disagreements, and reports performance.</p>
         </div>
+
+        <div className="demo-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', justifyItems: 'center' }}>
+          {videos.map((video, index) => (
+            <div className="demo-card fade-in" key={video.url} style={{ width: '100%', maxWidth: '860px' }}>
+              <div className="video-container" ref={el => videoContainersRef.current[index] = el}>
+                <div className="video-overlay">{video.duration}</div>
+                <div className="play-button"></div>
+              </div>
+              <div className="demo-content">
+                <h3>{video.title}</h3>
+                <p>{video.description}</p>
+              </div>
+            </div>
+          ))}
       </div>
+    </div>
     </section>
   );
 };
 
 export default Demos;
-
