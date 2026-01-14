@@ -49,7 +49,7 @@ const Demos = () => {
       <div className="container">
         <div className="section-header fade-in">
           <h2>What is Pythia?</h2>
-                    <p>Step-by-step explanation of how Pythia refines prompts, adjudicates disagreements, and reports performance.</p>
+                    <p>Pythia is an iterative tool for allowing your LLM to improve upon it's own prompts, watch the video to learn more!</p>
         </div>
 
         <div className="demo-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', justifyItems: 'center' }}>
