@@ -11,12 +11,12 @@ if os.path.isfile(requirement_path):
 setup(
     name='pythia_tool',
     version='1.0.2',
-    author="Cameron Cagan",
-    author_email="ccagan@mgh.harvard.edu",
+    author="",
+    author_email="",
     description="An LLM driven prompt improvement tool for optimizing LLM applications.",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/clai-group/Pythia",  
+    url="",  
     license="MIT",
     packages=find_packages(),
     install_requires=install_requires,
@@ -39,12 +39,9 @@ setup(
     include_package_data=False,
     zip_safe=False,
     project_urls={
-        "Documentation": "https://github.com/clai-group/Pythia/blob/main/README.md",
-        "Source": "https://github.com/clai-group/Pythia",
-        "Tracker": "https://github.com/clai-group/Pythia/issues",
     },
     extras_require={
-        "ollama": ["ollama"],  # Adjust based on actual optional deps
+        "ollama": ["ollama"],
         "google": ["google-auth", "google-genai"],
         "openai": ["openai"],
     },
