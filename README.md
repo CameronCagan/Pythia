@@ -89,7 +89,7 @@ False
 #### Type:
  String
 #### Description:
-Either "specificity" or "sensitivity", representing which of the two metrics Pythia will prioritize improving. Defaults to specificity.
+Either "specificity" or "sensitivity", representing which of the two metrics Pythia will prioritize improving. Defaults to sensitivity.
 #### Required:
 False
 
